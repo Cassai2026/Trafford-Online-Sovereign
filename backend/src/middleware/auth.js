@@ -1,7 +1,16 @@
 // JWT-based auth middleware + Google Workspace SSO helper
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[FATAL] JWT_SECRET is not set in production. Refusing to start.');
+    process.exit(1);
+  } else {
+    console.warn('[WARN] JWT_SECRET not set. Using insecure dev default — do NOT use in production.');
+  }
+}
+const SIGNING_SECRET = JWT_SECRET || 'dev-only-insecure-secret';
 
 /**
  * Middleware: verify Bearer JWT on protected routes.
@@ -12,7 +21,7 @@ function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Missing auth token' });
 
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, SIGNING_SECRET);
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });
@@ -31,7 +40,7 @@ function issueToken(googlePayload) {
       email: googlePayload.email,
       name: googlePayload.name,
     },
-    JWT_SECRET,
+    SIGNING_SECRET,
     { expiresIn: '12h' }
   );
 }

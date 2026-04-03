@@ -21,15 +21,19 @@ router.post(
 
     let payload;
     try {
-      // Verify with Google when client ID and library are configured; dev-mode bypass otherwise
+      // Verify with Google when client ID and library are configured
       if (GOOGLE_CLIENT_ID && OAuth2Client) {
         const client = new OAuth2Client(GOOGLE_CLIENT_ID);
         const ticket = await client.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
         payload = ticket.getPayload();
-      } else {
-        // Dev bypass: accept a mock payload for local testing
+      } else if (process.env.NODE_ENV !== 'production') {
+        // Dev-mode bypass: accepts a mock JWT payload for local testing ONLY.
+        // Never enabled in production (NODE_ENV check above).
+        console.warn('[AUTH] Dev-mode token bypass active. Set GOOGLE_CLIENT_ID for production verification.');
         const decoded = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64').toString());
         payload = { sub: decoded.sub, email: decoded.email, name: decoded.name };
+      } else {
+        return res.status(503).json({ error: 'Google SSO not configured on this server' });
       }
     } catch (err) {
       return res.status(401).json({ error: 'Invalid Google ID token' });

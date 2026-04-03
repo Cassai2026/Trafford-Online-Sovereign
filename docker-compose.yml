@@ -69,7 +69,7 @@ services:
       DISCOURSE_DATABASE_USER:      sovereign
       DISCOURSE_DATABASE_PASSWORD:  ${POSTGRES_PASSWORD}
       DISCOURSE_USERNAME:           admin
-      DISCOURSE_PASSWORD:           ${DISCOURSE_ADMIN_PASSWORD:-changeme123!}
+      DISCOURSE_PASSWORD:           ${DISCOURSE_ADMIN_PASSWORD}
       DISCOURSE_EMAIL:              ${DISCOURSE_DEVELOPER_EMAILS:-admin@trafford.online}
       DISCOURSE_SITE_NAME:          "Trafford Sovereign Community"
     ports:
@@ -92,7 +92,7 @@ services:
       POSTGRES_USER:     sovereign
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       NEXTCLOUD_ADMIN_USER:     ${NEXTCLOUD_ADMIN_USER:-admin}
-      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD:-changeme123!}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
       NEXTCLOUD_TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAINS:-files.trafford.online}
     ports:
       - "3300:80"

@@ -79,11 +79,11 @@ router.patch(
   validate,
   async (req, res) => {
     const { status } = req.body;
-    const resolvedAt = status === 'resolved' ? 'NOW()' : 'NULL';
     const { rows } = await db.query(
-      `UPDATE safety_reports SET status = $2, resolved_at = ${resolvedAt}
+      `UPDATE safety_reports
+       SET status = $2, resolved_at = CASE WHEN $3::boolean THEN NOW() ELSE NULL END
        WHERE uuid = $1 RETURNING *`,
-      [req.params.uuid, status]
+      [req.params.uuid, status, status === 'resolved']
     );
     if (!rows.length) return res.status(404).json({ error: 'Report not found' });
     return res.json({ data: rows[0] });

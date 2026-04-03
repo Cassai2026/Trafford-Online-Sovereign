@@ -77,13 +77,12 @@ router.post(
     );
     const providerId = matchRes.rows[0]?.id ?? null;
     const status = providerId ? 'matched' : 'open';
-    const matchedAt = providerId ? 'NOW()' : 'NULL';
 
     const { rows } = await db.query(
       `INSERT INTO service_swaps
          (requester_id, provider_id, skill_needed, description, location, status, matched_at)
-       VALUES ($1, $2, $3, $4, $5, $6, ${matchedAt}) RETURNING *`,
-      [requesterId, providerId, skill_needed, description, location, status]
+       VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $7::boolean THEN NOW() ELSE NULL END) RETURNING *`,
+      [requesterId, providerId, skill_needed, description, location, status, !!providerId]
     );
     return res.status(201).json({ data: rows[0], auto_matched: !!providerId });
   }
@@ -102,12 +101,11 @@ router.patch(
   validate,
   async (req, res) => {
     const { status } = req.body;
-    const completedAt = status === 'completed' ? 'NOW()' : 'NULL';
     const { rows } = await db.query(
       `UPDATE service_swaps
-       SET status = $2, completed_at = ${completedAt}
+       SET status = $2, completed_at = CASE WHEN $3::boolean THEN NOW() ELSE NULL END
        WHERE uuid = $1 RETURNING *`,
-      [req.params.uuid, status]
+      [req.params.uuid, status, status === 'completed']
     );
     if (!rows.length) return res.status(404).json({ error: 'Swap not found' });
     return res.json({ data: rows[0] });

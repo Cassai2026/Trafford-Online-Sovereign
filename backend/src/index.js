@@ -1,6 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+
+// Fail fast if required secrets are absent in production
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('[FATAL] JWT_SECRET environment variable is not set. Refusing to start.');
+  process.exit(1);
+}
 
 const app = express();
 
@@ -13,8 +20,26 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Global rate limiter (100 req / 15 min per IP)
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+}));
+
+// Stricter limiter for auth endpoints (10 req / 15 min)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many auth attempts, please try again later.' },
+});
+
 // ── Routes ───────────────────────────────────────────────────
-app.use('/api/auth',      require('./routes/auth'));
+app.use('/api/auth',      authLimiter, require('./routes/auth'));
 app.use('/api/nodes',     require('./routes/nodes'));
 app.use('/api/deeds',     require('./routes/deeds'));
 app.use('/api/materials', require('./routes/materials'));

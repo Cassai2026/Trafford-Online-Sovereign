@@ -1,9 +1,17 @@
 // DB connection pool — all queries must go through this module
 const { Pool } = require('pg');
 
+// SSL configuration for production:
+// - Set DATABASE_URL with ?sslmode=require for managed PostgreSQL (Cloud SQL, etc.)
+// - Set PG_SSL_REJECT_UNAUTHORIZED=false ONLY when using self-signed certificates
+//   and you fully understand the MITM risk. Default is true (verified certs).
+const sslConfig = process.env.NODE_ENV === 'production'
+  ? { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED !== 'false' }
+  : false;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: sslConfig,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
