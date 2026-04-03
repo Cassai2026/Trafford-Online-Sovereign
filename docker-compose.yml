@@ -1,0 +1,126 @@
+version: "3.9"
+
+# Trafford Online Sovereign OS — 1-click deployment
+# Usage: docker compose up -d
+#
+# Required .env file (see .env.example):
+#   POSTGRES_PASSWORD, JWT_SECRET, GOOGLE_CLIENT_ID,
+#   DISCOURSE_DEVELOPER_EMAILS, DISCOURSE_HOSTNAME,
+#   NEXTCLOUD_ADMIN_USER, NEXTCLOUD_ADMIN_PASSWORD
+
+services:
+  # ── PostgreSQL Database ────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       trafford_sovereign
+      POSTGRES_USER:     sovereign
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sovereign -d trafford_sovereign"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sovereign-net
+
+  # ── The Hub: Node.js/Express Backend ──────────────────────
+  hub:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV:       production
+      PORT:           4000
+      DATABASE_URL:   postgres://sovereign:${POSTGRES_PASSWORD}@db:5432/trafford_sovereign
+      JWT_SECRET:     ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://trafford.online}
+      API_BASE_URL:   ${API_BASE_URL:-https://trafford.online/api}
+    ports:
+      - "4000:4000"
+    networks:
+      - sovereign-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Discourse Forum (Addiction Recovery / Mentoring) ──────
+  discourse:
+    image: bitnami/discourse:3
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DISCOURSE_HOST:               ${DISCOURSE_HOSTNAME:-forum.trafford.online}
+      DISCOURSE_DATABASE_HOST:      db
+      DISCOURSE_DATABASE_PORT_NUMBER: 5432
+      DISCOURSE_DATABASE_NAME:      discourse
+      DISCOURSE_DATABASE_USER:      sovereign
+      DISCOURSE_DATABASE_PASSWORD:  ${POSTGRES_PASSWORD}
+      DISCOURSE_USERNAME:           admin
+      DISCOURSE_PASSWORD:           ${DISCOURSE_ADMIN_PASSWORD}
+      DISCOURSE_EMAIL:              ${DISCOURSE_DEVELOPER_EMAILS:-admin@trafford.online}
+      DISCOURSE_SITE_NAME:          "Trafford Sovereign Community"
+    ports:
+      - "3200:3000"
+    volumes:
+      - discourse_data:/bitnami/discourse
+    networks:
+      - sovereign-net
+
+  # ── Nextcloud (Community File Storage) ────────────────────
+  nextcloud:
+    image: nextcloud:28-apache
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST:     db
+      POSTGRES_DB:       nextcloud
+      POSTGRES_USER:     sovereign
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      NEXTCLOUD_ADMIN_USER:     ${NEXTCLOUD_ADMIN_USER:-admin}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAINS:-files.trafford.online}
+    ports:
+      - "3300:80"
+    volumes:
+      - nextcloud_data:/var/www/html
+    networks:
+      - sovereign-net
+
+  # ── Nginx Reverse Proxy ────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    depends_on:
+      - hub
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - sovereign-net
+
+volumes:
+  pgdata:
+  discourse_data:
+  nextcloud_data:
+
+networks:
+  sovereign-net:
+    driver: bridge

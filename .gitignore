@@ -1,0 +1,11 @@
+# Trafford Online Sovereign OS — Dependencies & Build Artifacts
+node_modules/
+dist/
+build/
+.env
+*.log
+npm-debug.log*
+.DS_Store
+*.pem
+coverage/
+.nyc_output/
