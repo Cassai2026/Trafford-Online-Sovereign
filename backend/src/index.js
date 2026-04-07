@@ -47,6 +47,7 @@ app.use('/api/swaps',     require('./routes/service-swap'));
 app.use('/api/governance',require('./routes/governance'));
 app.use('/api/safety',    require('./routes/safety'));
 app.use('/api/reworks',   require('./routes/reworks'));
+app.use('/api/vajra',     require('./routes/vajra'));
 
 // ── Health check ─────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'trafford-sovereign-hub' }));

@@ -166,3 +166,82 @@ describe('POST /api/safety', () => {
     expect(res.status).toBe(400);
   });
 });
+
+// ── Vajra / Genesis Engine ────────────────────────────────────────────────────
+describe('GET /api/vajra/nodes', () => {
+  it('returns the four Tetrad nodes', async () => {
+    const res = await request(app).get('/api/vajra/nodes');
+    expect(res.status).toBe(200);
+    const ids = res.body.data.map((n) => n.node);
+    expect(ids).toContain('odin');
+    expect(ids).toContain('hekete');
+    expect(ids).toContain('kong');
+    expect(ids).toContain('enki');
+  });
+});
+
+describe('POST /api/vajra/compile', () => {
+  it('returns 400 when intent is missing', async () => {
+    const res = await request(app).post('/api/vajra/compile').send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when intent exceeds 500 chars', async () => {
+    const res = await request(app)
+      .post('/api/vajra/compile')
+      .send({ intent: 'a'.repeat(501) });
+    expect(res.status).toBe(400);
+  });
+
+  it('routes a ledger intent to odin', async () => {
+    const res = await request(app)
+      .post('/api/vajra/compile')
+      .send({ intent: 'record energy credit for node 7' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.routed_to).toBe('odin');
+    expect(res.body.data.output).toMatch(/ODIN/);
+  });
+
+  it('routes a firewall intent to hekete', async () => {
+    const res = await request(app)
+      .post('/api/vajra/compile')
+      .send({ intent: 'lock down the firewall — threat detected' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.routed_to).toBe('hekete');
+  });
+
+  it('routes a compute intent to kong', async () => {
+    const res = await request(app)
+      .post('/api/vajra/compile')
+      .send({ intent: 'dispatch heavy compute task batch 3' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.routed_to).toBe('kong');
+  });
+
+  it('routes a thermal intent to enki', async () => {
+    const res = await request(app)
+      .post('/api/vajra/compile')
+      .send({ intent: 'increase cooling fan speed — temperature rising' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.routed_to).toBe('enki');
+  });
+
+  it('defaults unknown intent to odin', async () => {
+    const res = await request(app)
+      .post('/api/vajra/compile')
+      .send({ intent: 'do something unspecified' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.routed_to).toBe('odin');
+  });
+
+  it('response contains structured output fields', async () => {
+    const res = await request(app)
+      .post('/api/vajra/compile')
+      .send({ intent: 'audit carbon ledger' });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveProperty('routed_to');
+    expect(res.body.data).toHaveProperty('label');
+    expect(res.body.data).toHaveProperty('output');
+    expect(res.body.data.output).toMatch(/VAJRA/);
+  });
+});

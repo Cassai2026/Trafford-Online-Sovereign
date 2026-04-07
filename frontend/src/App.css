@@ -1,13 +1,14 @@
 /* Trafford Online Sovereign OS — Global Styles */
+/* Lilius Interface — Cyan-on-Black "void-space" theme */
 :root {
-  --bg:        #0d0d1a;
-  --surface:   #1a1a2e;
-  --border:    #2a2a4a;
-  --accent:    #06d6a0;
-  --accent2:   #ffd166;
-  --danger:    #ff6b6b;
-  --text:      #e0e0f0;
-  --muted:     #888;
+  --bg:        #000000;
+  --surface:   #0a0a0a;
+  --border:    #00ffff33;
+  --accent:    #00ffff;
+  --accent2:   #00cccc;
+  --danger:    #ff4444;
+  --text:      #e0f7fa;
+  --muted:     #4dd0e1;
   --radius:    10px;
 }
 
@@ -158,3 +159,139 @@ body {
   .app-main { padding: 16px; }
   .mandate-counter { font-size: 1.8rem; }
 }
+
+/* ── Genesis Engine / Lilius Interface ──────────────────── */
+.genesis-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.genesis-header h2 {
+  font-size: 1.4rem;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.genesis-header p {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+/* Vajra NLP input */
+.vajra-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.vajra-input {
+  flex: 1;
+  min-width: 220px;
+  background: #000;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-family: 'Courier New', monospace;
+  outline: none;
+  caret-color: var(--accent);
+  box-shadow: 0 0 8px var(--border);
+  transition: box-shadow 0.2s;
+}
+.vajra-input::placeholder { color: var(--accent2); opacity: 0.6; }
+.vajra-input:focus        { box-shadow: 0 0 16px #00ffff66; }
+
+.vajra-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.vajra-btn:hover    { background: var(--accent); color: #000; }
+.vajra-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Response terminal */
+.vajra-response {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.88rem;
+  min-height: 64px;
+  margin-bottom: 28px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.vajra-response.idle    { color: var(--muted); }
+.vajra-response.ok      { color: var(--accent); }
+.vajra-response.error   { color: var(--danger); }
+.vajra-response.loading { color: var(--accent2); }
+
+/* Tetrad node status grid */
+.tetrad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.tetrad-node {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.tetrad-node::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+.tetrad-node-icon  { font-size: 1.6rem; margin-bottom: 8px; }
+.tetrad-node-name  { font-size: 0.9rem; font-weight: 700; color: var(--accent); letter-spacing: 0.06em; }
+.tetrad-node-role  { font-size: 0.78rem; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+.tetrad-node-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.badge-online  { background: rgba(0,255,255,0.12); color: var(--accent); border: 1px solid var(--accent); }
+.badge-standby { background: rgba(0,204,204,0.08); color: var(--accent2); border: 1px solid var(--accent2); }
+
+/* Command log */
+.command-log {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.command-log-item {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+}
+.command-log-meta { color: var(--muted); font-size: 0.75rem; margin-bottom: 4px; }
+.command-log-intent { color: var(--accent); }
+.command-log-node   { color: var(--accent2); margin-left: 8px; }
+.command-log-status-ok    { color: var(--accent); }
+.command-log-status-error { color: var(--danger); }

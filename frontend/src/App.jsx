@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import TheMandate   from './components/TheMandate';
+import TheMandate    from './components/TheMandate';
 import LiveSiteStats from './components/LiveSiteStats';
-import JobBoard     from './components/JobBoard';
+import JobBoard      from './components/JobBoard';
+import GenesisEngine from './components/GenesisEngine';
 import './App.css';
 
 const TABS = [
-  { id: 'mandate',  label: '❤️ The Mandate'  },
-  { id: 'stats',    label: '🌿 Live Stats'    },
-  { id: 'jobs',     label: '💼 Job Board'     },
+  { id: 'mandate', label: '❤️ The Mandate'    },
+  { id: 'stats',   label: '🌿 Live Stats'      },
+  { id: 'jobs',    label: '💼 Job Board'       },
+  { id: 'genesis', label: '⚙ Genesis Engine'  },
 ];
 
 export default function App() {
@@ -36,6 +38,7 @@ export default function App() {
         {tab === 'mandate' && <TheMandate />}
         {tab === 'stats'   && <LiveSiteStats />}
         {tab === 'jobs'    && <JobBoard />}
+        {tab === 'genesis' && <GenesisEngine />}
       </main>
 
       <footer className="app-footer">
