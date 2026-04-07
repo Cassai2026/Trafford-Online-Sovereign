@@ -20,3 +20,12 @@ export const api = {
   post:  (path, body)   => apiFetch(path, { method: 'POST',  body: JSON.stringify(body) }),
   patch: (path, body)   => apiFetch(path, { method: 'PATCH', body: JSON.stringify(body) }),
 };
+
+/**
+ * Open a Server-Sent Events stream to the given path.
+ * The returned EventSource must be closed by the caller when no longer needed.
+ */
+export function createEventSource(path) {
+  return new EventSource(`${BASE_URL}${path}`);
+}
+

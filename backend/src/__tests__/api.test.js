@@ -167,6 +167,31 @@ describe('POST /api/safety', () => {
   });
 });
 
+// ── Nodes /me ────────────────────────────────────────────────
+describe('GET /api/nodes/me', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app).get('/api/nodes/me');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns the node for the authenticated user', async () => {
+    db.query.mockResolvedValue({ rows: [{ id: 1, uuid: 'abc', name: 'Test User', skills: [], constraints: [] }] });
+    const res = await request(app)
+      .get('/api/nodes/me')
+      .set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(res.body.data.name).toBe('Test User');
+  });
+
+  it('returns 404 when no node exists for the user', async () => {
+    db.query.mockResolvedValue({ rows: [] });
+    const res = await request(app)
+      .get('/api/nodes/me')
+      .set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+});
+
 // ── Vajra / Genesis Engine ────────────────────────────────────────────────────
 describe('GET /api/vajra/nodes', () => {
   it('returns the four Tetrad nodes', async () => {
@@ -243,5 +268,27 @@ describe('POST /api/vajra/compile', () => {
     expect(res.body.data).toHaveProperty('label');
     expect(res.body.data).toHaveProperty('output');
     expect(res.body.data.output).toMatch(/VAJRA/);
+  });
+});
+
+// ── Vajra /ack ───────────────────────────────────────────────
+describe('POST /api/vajra/ack', () => {
+  it('returns 400 when node is missing', async () => {
+    const res = await request(app).post('/api/vajra/ack').send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('returns broadcast count with a valid node', async () => {
+    const res = await request(app).post('/api/vajra/ack').send({ node: 'odin', status: 'CONFIRMED' });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveProperty('broadcast');
+    expect(res.body.data.node).toBe('odin');
+    expect(res.body.data.status).toBe('CONFIRMED');
+  });
+
+  it('defaults status to CONFIRMED when not provided', async () => {
+    const res = await request(app).post('/api/vajra/ack').send({ node: 'enki' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('CONFIRMED');
   });
 });

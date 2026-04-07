@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { api } from '../api';
+import React, { useState, useRef, useEffect } from 'react';
+import { api, createEventSource } from '../api';
 
 // ── Tetrad node metadata ─────────────────────────────────────────────────────
 const TETRAD_NODES = [
@@ -39,7 +39,33 @@ export default function GenesisEngine() {
   const [loading, setLoading]   = useState(false);
   const [response, setResponse] = useState(null);   // { text, status }
   const [log, setLog]           = useState([]);      // command history
-  const inputRef = useRef(null);
+  const [ackStatus, setAckStatus] = useState(null);  // last edge-controller ack
+  const inputRef  = useRef(null);
+  const esRef     = useRef(null);  // EventSource ref
+
+  // Subscribe to the Vajra SSE stream once on mount; clean up on unmount.
+  useEffect(() => {
+    try {
+      const es = createEventSource('/vajra/stream');
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          setAckStatus(data);
+          setResponse((prev) => {
+            if (!prev || prev.status !== 'ok') return prev;
+            const updatedText = prev.text.replace(
+              /STATUS\s*:.*$/m,
+              `STATUS  : ${data.status} — ${data.node.toUpperCase()} confirmed at ${data.ts}`
+            );
+            return { ...prev, text: updatedText };
+          });
+        } catch (_) { /* ignore malformed events */ }
+      };
+      esRef.current = es;
+    } catch (_) { /* EventSource not available (e.g. test env) */ }
+
+    return () => esRef.current?.close();
+  }, []);
 
   function appendLog(entry) {
     setLog((prev) => [entry, ...prev].slice(0, 50));  // keep last 50
@@ -111,6 +137,13 @@ export default function GenesisEngine() {
 
         {/* Terminal response */}
         <pre className={responseClass}>{responseText}</pre>
+
+        {/* Edge controller ack indicator */}
+        {ackStatus && (
+          <div className="ack-indicator">
+            ⚡ Edge Controller — {ackStatus.node.toUpperCase()} {ackStatus.status} at {ackStatus.ts}
+          </div>
+        )}
       </div>
 
       {/* Tetrad node status */}

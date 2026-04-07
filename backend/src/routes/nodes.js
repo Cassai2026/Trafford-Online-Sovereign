@@ -10,6 +10,17 @@ const validate = (req, res, next) => {
   next();
 };
 
+// GET /nodes/me — return the sovereign node for the authenticated user
+router.get('/me', requireAuth, async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT id, uuid, name, bio_roi, skills, constraints, reputation_score, is_active, created_at
+     FROM sovereign_nodes WHERE email = $1`,
+    [req.user.email]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'Node not found. Register one first.' });
+  return res.json({ data: rows[0] });
+});
+
 // GET /nodes — list active nodes
 router.get('/', async (req, res) => {
   const { rows } = await db.query(

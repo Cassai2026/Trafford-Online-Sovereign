@@ -5,6 +5,11 @@
 const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
 
+// ── SSE subscriber registry ───────────────────────────────────────────────────
+// Stores active SSE response objects for the /stream endpoint.
+// Single-process only; use Redis pub/sub for multi-instance deployments.
+const sseClients = new Set();
+
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
@@ -117,6 +122,45 @@ router.get('/nodes', (_req, res) => {
   });
 });
 
+// ── GET /vajra/stream ─────────────────────────────────────────────────────────
+// Server-Sent Events endpoint — browser/edge controller subscribes here.
+// Broadcasts command acknowledgements when POST /vajra/ack is called.
+router.get('/stream', (req, res) => {
+  res.set({
+    'Content-Type':  'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection':    'keep-alive',
+    'X-Accel-Buffering': 'no',  // disable nginx buffering
+  });
+  res.flushHeaders();
+
+  // Send a heartbeat comment immediately to confirm the connection
+  res.write(': connected\n\n');
+
+  sseClients.add(res);
+  req.on('close', () => sseClients.delete(res));
+});
+
+// ── POST /vajra/ack ───────────────────────────────────────────────────────────
+// Edge controller calls this to confirm a command has been executed.
+// Body: { node: string, status?: string, message?: string }
+router.post(
+  '/ack',
+  [
+    body('node').isString().withMessage('node is required').trim().notEmpty(),
+    body('status').optional().isString(),
+    body('message').optional().isString(),
+  ],
+  validate,
+  (req, res) => {
+    const { node, status = 'CONFIRMED', message = '' } = req.body;
+    const event = JSON.stringify({ node, status, message, ts: new Date().toISOString() });
+    sseClients.forEach((client) => client.write(`data: ${event}\n\n`));
+    return res.json({ data: { broadcast: sseClients.size, node, status } });
+  }
+);
+
 module.exports = router;
 module.exports.routeIntent   = routeIntent;   // exported for testing
 module.exports.compileIntent = compileIntent;
+module.exports.sseClients    = sseClients;    // exported for testing
