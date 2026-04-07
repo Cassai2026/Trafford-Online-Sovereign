@@ -1,0 +1,33 @@
+[package]
+name        = "genesis-edge-controller"
+version     = "0.1.0"
+edition     = "2021"
+description = "Layer 1 — Molecular Edge Controller for the Sovereign Mesh (RT Preempt Linux)"
+authors     = ["Trafford Online Sovereign <dev@trafford.online>"]
+license     = "MIT"
+
+[[bin]]
+name = "edge-controller"
+path = "src/main.rs"
+
+[dependencies]
+# Structured logging — zero-cost in release builds
+tracing            = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Async runtime (single-threaded to maintain RT determinism)
+tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
+
+# Serialisation for mesh protocol packets
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Monotonic high-precision timing (RT-safe)
+quanta = "0.12"
+
+[profile.release]
+# Strip debug symbols; maximise instruction-level optimisation for edge hardware
+opt-level = 3
+lto       = true
+codegen-units = 1
+panic     = "abort"   # avoid unwinding overhead on bare-metal edge nodes
