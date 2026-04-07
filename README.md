@@ -159,7 +159,15 @@ The governance system audits these pillars weekly. All 15 must score ≥ 60/100 
 
 ## License
 
-See [LICENSE](LICENSE).
+This project is governed by the **LILIETH SOVEREIGN PUBLIC LICENSE (LSPL) v1.0 —
+The Triple-Tier Shield**. See [LICENSE-LSPL.md](LICENSE-LSPL.md) for the full
+multi-layered legal framework.
+
+| Tier | Scope | License |
+|---|---|---|
+| I – Iron Layer | Source code, kernels, scripts | [GPLv3](LICENSE) |
+| II – Creative Layer | UI, icons, docs, assets | [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) |
+| III – Sovereign Layer | Mission, SDG Nodes, Anti-Rinsing | [LSPL v1.0](LICENSE-LSPL.md) |
 
 > *"Sovereign by design. Community by nature."*
 Trafford Online
