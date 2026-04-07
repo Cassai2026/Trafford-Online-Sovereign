@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 
@@ -49,16 +49,17 @@ export default function Safety() {
   const [success, setSuccess]   = useState(null);
   const [catFilter, setCatFilter] = useState('');
 
-  const load = (cat = catFilter) => {
+  const load = useCallback((cat) => {
     setLoading(true);
-    const path = cat ? `/safety?category=${cat}` : '/safety';
+    const path = cat !== undefined ? (cat ? `/safety?category=${cat}` : '/safety')
+                                   : (catFilter ? `/safety?category=${catFilter}` : '/safety');
     api.get(path)
       .then(({ data }) => setReports(data))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  };
+  }, [catFilter]);
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [load]);
 
   const applyFilter = (cat) => {
     setCatFilter(cat);

@@ -7,7 +7,8 @@ export const AuthContext = createContext(null);
 function decodeToken(token) {
   try {
     return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-  } catch {
+  } catch (err) {
+    console.warn('[Auth] Failed to decode token payload:', err.message);
     return null;
   }
 }

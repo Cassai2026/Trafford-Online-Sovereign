@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 
@@ -14,7 +14,7 @@ export default function NodeProfile() {
   const [saving, setSaving]   = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const loadNode = () => {
+  const loadNode = useCallback(() => {
     if (!user) return;
     setLoading(true);
     api.get('/nodes/me')
@@ -35,9 +35,9 @@ export default function NodeProfile() {
         }
       })
       .finally(() => setLoading(false));
-  };
+  }, [user]);
 
-  useEffect(loadNode, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadNode(); }, [loadNode]);
 
   const parseList = (str) =>
     str.split(',').map((s) => s.trim()).filter(Boolean);

@@ -59,10 +59,17 @@ export default function GenesisEngine() {
             );
             return { ...prev, text: updatedText };
           });
-        } catch (_) { /* ignore malformed events */ }
+        } catch (err) {
+          console.warn('[Vajra SSE] Malformed event data — ignoring:', err.message);
+        }
+      };
+      es.onerror = (err) => {
+        console.warn('[Vajra SSE] Stream error — edge controller may be offline:', err);
       };
       esRef.current = es;
-    } catch (_) { /* EventSource not available (e.g. test env) */ }
+    } catch (err) {
+      console.warn('[Vajra SSE] EventSource unavailable in this environment:', err.message);
+    }
 
     return () => esRef.current?.close();
   }, []);

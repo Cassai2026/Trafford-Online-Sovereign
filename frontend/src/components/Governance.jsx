@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 
@@ -23,7 +23,7 @@ export default function Governance() {
   const [error, setError]       = useState(null);
   const [success, setSuccess]   = useState(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     Promise.all([
       api.get('/governance/pillars'),
@@ -45,9 +45,9 @@ export default function Governance() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(load, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [load]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

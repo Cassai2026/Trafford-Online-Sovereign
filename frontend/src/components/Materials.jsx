@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 
@@ -44,16 +44,17 @@ export default function Materials() {
   const [success, setSuccess]     = useState(null);
   const [qrCode, setQrCode]       = useState(null);
 
-  const load = (cat = filter) => {
+  const load = useCallback((cat) => {
     setLoading(true);
-    const path = cat ? `/materials?category=${cat}` : '/materials';
+    const resolvedCat = cat !== undefined ? cat : filter;
+    const path = resolvedCat ? `/materials?category=${resolvedCat}` : '/materials';
     api.get(path)
       .then(({ data }) => setMaterials(data))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  };
+  }, [filter]);
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [load]);
 
   const applyFilter = (cat) => {
     setFilter(cat);

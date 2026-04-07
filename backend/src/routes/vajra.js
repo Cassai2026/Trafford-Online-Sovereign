@@ -134,7 +134,8 @@ router.get('/stream', (req, res) => {
   });
   res.flushHeaders();
 
-  // Send a heartbeat comment immediately to confirm the connection
+  // Send a heartbeat comment immediately to confirm the connection and
+  // prevent timeout in proxy configurations that close idle connections.
   res.write(': connected\n\n');
 
   sseClients.add(res);
