@@ -8,6 +8,7 @@
 //!
 //! Timing contract: thermal control loop every 500 ms.
 
+use crate::hub::HubClient;
 use tokio::time::{interval, Duration};
 use tracing::{debug, error, info, warn};
 
@@ -81,14 +82,37 @@ impl EnkiState {
 }
 
 /// Entry point — spawned as a tokio task by the edge controller.
-pub async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn run(hub: Option<HubClient>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("[Enki] Node online — Thermal Cooling / Fluid Dynamics");
-    let mut state = EnkiState::new();
-    let mut ticker = interval(Duration::from_millis(THERMAL_TICK_MS));
+    let mut state   = EnkiState::new();
+    let mut ticker  = interval(Duration::from_millis(THERMAL_TICK_MS));
+    let mut tick_no: u64 = 0;
+
+    // ACK Hub every 60 s (60_000 ms / 500 ms per tick = 120 ticks)
+    const ACK_EVERY: u64 = 120;
 
     loop {
         ticker.tick().await;
         state.tick();
+        tick_no += 1;
+
+        if tick_no % ACK_EVERY == 0 {
+            if let Some(ref h) = hub {
+                let status = if state.last_temp_c >= CRITICAL_TEMP_C {
+                    "THERMAL_RUNAWAY"
+                } else if state.last_temp_c >= WARN_TEMP_C {
+                    "TEMP_HIGH"
+                } else {
+                    "HEARTBEAT"
+                };
+                h.ack(
+                    "enki",
+                    status,
+                    &format!("temp={:.1}°C fan={}%", state.last_temp_c, state.fan_pwm),
+                )
+                .await;
+            }
+        }
     }
 }
 

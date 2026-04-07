@@ -25,21 +25,47 @@ router.get('/', async (req, res) => {
   return res.json({ data: rows });
 });
 
-// GET /swaps/match?skill=painting — find nodes that can provide a skill
+// GET /swaps/match?skill=painting[&lat=53.44&lng=-2.28] — find nodes that can provide a skill.
+// When lat/lng are supplied, results are filtered to nodes within SWAP_RADIUS_KM (default 10 km)
+// using PostGIS ST_DWithin.  Nodes without a stored location are excluded when proximity is active.
 router.get('/match', async (req, res) => {
   const { skill } = req.query;
   if (!skill) return res.status(400).json({ error: 'skill query param required' });
 
-  // Use PostgreSQL JSONB contains for skill matching
+  const lat = req.query.lat !== undefined ? parseFloat(req.query.lat) : null;
+  const lng = req.query.lng !== undefined ? parseFloat(req.query.lng) : null;
+
+  if (lat !== null && (isNaN(lat) || lat < -90  || lat > 90)) {
+    return res.status(400).json({ error: 'lat must be a number between -90 and 90' });
+  }
+  if (lng !== null && (isNaN(lng) || lng < -180 || lng > 180)) {
+    return res.status(400).json({ error: 'lng must be a number between -180 and 180' });
+  }
+
+  const radiusKm = parseFloat(process.env.SWAP_RADIUS_KM || '10');
+
+  // When lat/lng are provided, filter by PostGIS proximity (nodes without location are excluded).
+  // Otherwise fall back to pure skill matching (original behaviour).
   const { rows } = await db.query(
     `SELECT id, uuid, name, bio_roi, skills, reputation_score
      FROM sovereign_nodes
      WHERE is_active = TRUE
        AND skills @> $1::jsonb
+       AND (
+         $2::float8 IS NULL OR $3::float8 IS NULL
+         OR (
+           location IS NOT NULL
+           AND ST_DWithin(
+             ST_SetSRID(ST_MakePoint(location[0], location[1]), 4326)::geography,
+             ST_SetSRID(ST_MakePoint($3::float8, $2::float8), 4326)::geography,
+             $4 * 1000
+           )
+         )
+       )
      ORDER BY reputation_score DESC`,
-    [JSON.stringify([skill])]
+    [JSON.stringify([skill]), lat, lng, radiusKm]
   );
-  return res.json({ data: rows, matched_skill: skill });
+  return res.json({ data: rows, matched_skill: skill, proximity_km: lat !== null ? radiusKm : null });
 });
 
 // POST /swaps — open a new swap request (authenticated)

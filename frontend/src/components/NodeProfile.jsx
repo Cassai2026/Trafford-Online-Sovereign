@@ -13,6 +13,7 @@ export default function NodeProfile() {
   const [form, setForm]       = useState(EMPTY_FORM);
   const [saving, setSaving]   = useState(false);
   const [creating, setCreating] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
 
   const loadNode = useCallback(() => {
     if (!user) return;
@@ -63,8 +64,22 @@ export default function NodeProfile() {
     }
   };
 
-  const handleUpdate = async (e) => {
-    e.preventDefault();
+  const handleRecalculate = async () => {
+    setRecalculating(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const { data } = await api.post('/nodes/reputation/recalculate');
+      setSuccess(`✅ Reputation recalculated: ${Number(data.reputation_score).toFixed(2)}/100`);
+      loadNode();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
+  const handleUpdate = async (e) => {    e.preventDefault();
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -125,6 +140,16 @@ export default function NodeProfile() {
               <span className="node-stat">
                 Skills: <strong>{(node.skills || []).length}</strong>
               </span>
+              <button
+                type="button"
+                className="action-btn"
+                style={{ marginLeft: 'auto', padding: '4px 12px', fontSize: '0.85rem' }}
+                onClick={handleRecalculate}
+                disabled={recalculating}
+                title="Recalculates your reputation score based on completed swaps, governance audits, and safety reports"
+              >
+                {recalculating ? 'Recalculating…' : '🔄 Recalculate Reputation'}
+              </button>
             </div>
 
             <form className="deed-form" onSubmit={handleUpdate}>

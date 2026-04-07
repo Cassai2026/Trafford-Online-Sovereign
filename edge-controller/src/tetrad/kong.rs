@@ -7,6 +7,7 @@
 //!
 //! Timing contract: compute dispatch latency target < 500 µs.
 
+use crate::hub::HubClient;
 use tokio::time::{interval, Duration};
 use tracing::{debug, info, warn};
 
@@ -91,13 +92,27 @@ impl KongState {
 }
 
 /// Entry point — spawned as a tokio task by the edge controller.
-pub async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn run(hub: Option<HubClient>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("[Kong] Node online — Heavy-Compute / Energy Harvesting");
-    let mut state = KongState::new();
+    let mut state  = KongState::new();
     let mut ticker = interval(Duration::from_millis(COMPUTE_TICK_MS));
+
+    // ACK Hub every 60 s (60_000 ms / 50 ms per tick = 1_200 ticks)
+    const ACK_EVERY: u64 = 1_200;
 
     loop {
         ticker.tick().await;
         state.tick();
+
+        if state.task_counter > 0 && state.task_counter % ACK_EVERY == 0 {
+            if let Some(ref h) = hub {
+                h.ack(
+                    "kong",
+                    "HEARTBEAT",
+                    &format!("tasks dispatched #{} harvested={:.2}W", state.task_counter, state.harvested_watts),
+                )
+                .await;
+            }
+        }
     }
 }
