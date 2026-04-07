@@ -8,6 +8,7 @@
 //!
 //! Timing contract: security scan target < 10 µs per packet.
 
+use crate::hub::HubClient;
 use std::collections::HashMap;
 use tokio::time::{interval, Duration};
 use tracing::{error, info, warn};
@@ -78,14 +79,26 @@ impl HeketeState {
 }
 
 /// Entry point — spawned as a tokio task by the edge controller.
-pub async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn run(hub: Option<HubClient>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("[Hekete] Node online — Firewall / Crossroads");
-    let mut state = HeketeState::new();
-    let mut ticker = interval(Duration::from_millis(SCAN_INTERVAL_MS));
+    let mut state   = HeketeState::new();
+    let mut ticker  = interval(Duration::from_millis(SCAN_INTERVAL_MS));
+    let mut tick_no: u64 = 0;
+
+    // ACK Hub every 60 s (60_000 ms / 100 ms per tick = 600 ticks)
+    const ACK_EVERY: u64 = 600;
 
     loop {
         ticker.tick().await;
         state.process_synthetic_tick();
+        tick_no += 1;
+
+        if tick_no % ACK_EVERY == 0 {
+            if let Some(ref h) = hub {
+                let status = if state.purge_triggered { "PURGE_ACTIVE" } else { "HEARTBEAT" };
+                h.ack("hekete", status, "firewall scan nominal").await;
+            }
+        }
     }
 }
 

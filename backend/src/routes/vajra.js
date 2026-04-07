@@ -4,11 +4,56 @@
 // Processing is entirely local — no external cloud APIs.
 const router = require('express').Router();
 const { body, validationResult } = require('express-validator');
+const { requireAuth } = require('../middleware/auth');
 
 // ── SSE subscriber registry ───────────────────────────────────────────────────
 // Stores active SSE response objects for the /stream endpoint.
-// Single-process only; use Redis pub/sub for multi-instance deployments.
+// When REDIS_URL is set, uses Redis pub/sub for multi-instance deployments;
+// falls back to this in-process Set for single-instance / dev deployments.
 const sseClients = new Set();
+
+// ── Redis pub/sub (optional) ─────────────────────────────────────────────────
+let redisPublisher  = null;
+let redisSubscriber = null;
+
+if (process.env.REDIS_URL) {
+  const { createClient } = require('redis');
+
+  (async () => {
+    redisPublisher  = createClient({ url: process.env.REDIS_URL });
+    redisSubscriber = createClient({ url: process.env.REDIS_URL });
+
+    redisPublisher.on('error',  (err) => console.error('[Vajra] Redis publisher error:',  err.message));
+    redisSubscriber.on('error', (err) => console.error('[Vajra] Redis subscriber error:', err.message));
+
+    await redisPublisher.connect();
+    await redisSubscriber.connect();
+
+    // Fan out ACK events from any Hub instance to local SSE clients
+    await redisSubscriber.subscribe('vajra:acks', (message) => {
+      sseClients.forEach((client) => client.write(`data: ${message}\n\n`));
+    });
+
+    console.info('[Vajra] Redis pub/sub connected');
+  })().catch((err) => {
+    console.error('[Vajra] Redis setup failed — falling back to in-process broadcast:', err.message);
+    redisPublisher  = null;
+    redisSubscriber = null;
+  });
+}
+
+// ── SSE heartbeat ─────────────────────────────────────────────────────────────
+// Sends a comment line every 30 s to prevent idle-connection timeout in
+// proxies (Cloud Run, nginx) and to flush keep-alive on clients.
+setInterval(() => {
+  sseClients.forEach((client) => {
+    try {
+      client.write(': heartbeat\n\n');
+    } catch (_) {
+      sseClients.delete(client);
+    }
+  });
+}, 30_000);
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -84,10 +129,12 @@ function compileIntent(intent, route) {
 }
 
 // ── POST /vajra/compile ───────────────────────────────────────────────────────
+// Authenticated — only sovereign nodes may issue compile commands.
 // Body: { intent: string }
 // Returns: { data: { routed_to, node, output } }
 router.post(
   '/compile',
+  requireAuth,
   [
     body('intent')
       .isString().withMessage('intent must be a string')
@@ -156,7 +203,17 @@ router.post(
   (req, res) => {
     const { node, status = 'CONFIRMED', message = '' } = req.body;
     const event = JSON.stringify({ node, status, message, ts: new Date().toISOString() });
-    sseClients.forEach((client) => client.write(`data: ${event}\n\n`));
+
+    // Broadcast via Redis (multi-instance) or directly to local SSE clients
+    if (redisPublisher?.isReady) {
+      redisPublisher.publish('vajra:acks', event).catch((err) => {
+        console.error('[Vajra] Redis publish failed — broadcasting locally:', err.message);
+        sseClients.forEach((client) => client.write(`data: ${event}\n\n`));
+      });
+    } else {
+      sseClients.forEach((client) => client.write(`data: ${event}\n\n`));
+    }
+
     return res.json({ data: { broadcast: sseClients.size, node, status } });
   }
 );

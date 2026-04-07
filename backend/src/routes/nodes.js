@@ -21,12 +21,30 @@ router.get('/me', requireAuth, async (req, res) => {
   return res.json({ data: rows[0] });
 });
 
-// GET /nodes — list active nodes
+// GET /nodes — list active nodes; ?format=sheets returns column-ordered rows for SovereignSync.gs
 router.get('/', async (req, res) => {
   const { rows } = await db.query(
     `SELECT id, uuid, name, bio_roi, skills, constraints, reputation_score, is_active, created_at
      FROM sovereign_nodes WHERE is_active = TRUE ORDER BY reputation_score DESC`
   );
+
+  if (req.query.format === 'sheets') {
+    // Return data in the exact column order expected by SovereignSync.gs
+    const now = new Date().toISOString();
+    return res.json({
+      headers: ['UUID', 'Name', 'Bio-ROI', 'Skills (I Can)', 'Constraints (I Don\'t)', 'Reputation Score', 'Last Synced'],
+      rows: rows.map((n) => [
+        n.uuid,
+        n.name,
+        n.bio_roi || '',
+        Array.isArray(n.skills)      ? n.skills.join(', ')      : '',
+        Array.isArray(n.constraints) ? n.constraints.join(', ') : '',
+        n.reputation_score,
+        now,
+      ]),
+    });
+  }
+
   return res.json({ data: rows });
 });
 
@@ -93,5 +111,41 @@ router.patch(
     return res.json({ data: rows[0] });
   }
 );
+
+// POST /nodes/reputation/recalculate — recompute reputation score for the authenticated user's node.
+// Scoring: +10 per completed swap, +3 per governance audit, +2 per safety report (capped at 100).
+router.post('/reputation/recalculate', requireAuth, async (req, res) => {
+  const { rows } = await db.query(
+    `WITH target AS (
+       SELECT id FROM sovereign_nodes WHERE email = $1
+     ),
+     swap_score AS (
+       SELECT COALESCE(COUNT(*), 0) * 10 AS pts
+       FROM service_swaps, target
+       WHERE (requester_id = target.id OR provider_id = target.id) AND status = 'completed'
+     ),
+     audit_score AS (
+       SELECT COALESCE(COUNT(*), 0) * 3 AS pts
+       FROM pillar_audits, target
+       WHERE auditor_id = target.id
+     ),
+     safety_score AS (
+       SELECT COALESCE(COUNT(*), 0) * 2 AS pts
+       FROM safety_reports, target
+       WHERE reporter_id = target.id
+     )
+     UPDATE sovereign_nodes
+     SET reputation_score = LEAST(100, (
+       (SELECT pts FROM swap_score) +
+       (SELECT pts FROM audit_score) +
+       (SELECT pts FROM safety_score)
+     ))
+     WHERE email = $1
+     RETURNING id, uuid, name, reputation_score`,
+    [req.user.email]
+  );
+  if (!rows.length) return res.status(404).json({ error: 'No sovereign node found for this user' });
+  return res.json({ data: rows[0] });
+});
 
 module.exports = router;

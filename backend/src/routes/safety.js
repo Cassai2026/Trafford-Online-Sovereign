@@ -64,6 +64,25 @@ router.post(
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
       [reporterId, category, severity, title, description, location, lat, lng]
     );
+
+    // Fire-and-forget webhook alert for critical reports
+    if (rows[0].severity === 'critical' && process.env.GUARDIAN_WEBHOOK_URL) {
+      fetch(process.env.GUARDIAN_WEBHOOK_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          text:   `🚨 Critical safety report: ${rows[0].title}`,
+          report: {
+            uuid:       rows[0].uuid,
+            title:      rows[0].title,
+            category:   rows[0].category,
+            location:   rows[0].location || 'Not specified',
+            created_at: rows[0].created_at,
+          },
+        }),
+      }).catch((err) => console.error('[Safety] Guardian webhook failed:', err.message));
+    }
+
     return res.status(201).json({ data: rows[0] });
   }
 );

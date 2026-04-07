@@ -7,8 +7,10 @@
 //!
 //! Deterministic response target: < 10 µs end-to-end command latency.
 
+mod hub;
 mod tetrad;
 
+use hub::HubClient;
 use tetrad::{enki, hekete, kong, odin};
 use tracing::{error, info, warn};
 
@@ -93,10 +95,19 @@ async fn main() {
 
     // Boot the four Tetrad archetype nodes
     info!("[Boot] Initialising Tetrad Algorithm nodes…");
-    let odin_handle   = tokio::spawn(odin::run());
-    let hekete_handle = tokio::spawn(hekete::run());
-    let kong_handle   = tokio::spawn(kong::run());
-    let enki_handle   = tokio::spawn(enki::run());
+
+    // Initialise Hub client from environment (optional — skipped if HUB_URL is unset)
+    let hub = HubClient::from_env();
+    if hub.is_some() {
+        info!("[Hub] ACK client initialised — sovereign ACKs will be broadcast to Hub SSE stream");
+    } else {
+        info!("[Hub] HUB_URL not set — running without Hub ACK reporting");
+    }
+
+    let odin_handle   = tokio::spawn(odin::run(hub.clone()));
+    let hekete_handle = tokio::spawn(hekete::run(hub.clone()));
+    let kong_handle   = tokio::spawn(kong::run(hub.clone()));
+    let enki_handle   = tokio::spawn(enki::run(hub));
 
     // Await all nodes — any panic in a node is surfaced here
     let results = tokio::join!(odin_handle, hekete_handle, kong_handle, enki_handle);

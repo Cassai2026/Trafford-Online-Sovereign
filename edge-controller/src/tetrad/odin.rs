@@ -7,6 +7,7 @@
 //!
 //! Timing contract: ledger ticks every 1 000 ms (non-critical path).
 
+use crate::hub::HubClient;
 use serde::{Deserialize, Serialize};
 use tokio::time::{interval, Duration};
 use tracing::{debug, info};
@@ -50,13 +51,22 @@ impl OdinState {
 }
 
 /// Entry point — spawned as a tokio task by the edge controller.
-pub async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn run(hub: Option<HubClient>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("[Odin] Node online — Structure / Ledger Mathematics");
-    let mut state = OdinState::new();
-    let mut ticker = interval(Duration::from_millis(1_000));
+    let mut state   = OdinState::new();
+    let mut ticker  = interval(Duration::from_millis(1_000));
+
+    // ACK Hub every 60 s (every 60 ledger ticks)
+    const ACK_EVERY: u64 = 60;
 
     loop {
         ticker.tick().await;
         state.tick();
+
+        if state.sequence % ACK_EVERY == 0 {
+            if let Some(ref h) = hub {
+                h.ack("odin", "HEARTBEAT", &format!("ledger sequence #{}", state.sequence)).await;
+            }
+        }
     }
 }
