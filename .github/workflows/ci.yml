@@ -1,4 +1,4 @@
-# CI — Run backend tests on every PR
+# CI — Run backend and frontend tests on every PR
 name: CI
 
 on:
@@ -29,3 +29,21 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+        env:
+          CI: true
