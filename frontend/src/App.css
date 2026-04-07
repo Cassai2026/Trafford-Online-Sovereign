@@ -295,3 +295,206 @@ body {
 .command-log-node   { color: var(--accent2); margin-left: 8px; }
 .command-log-status-ok    { color: var(--accent); }
 .command-log-status-error { color: var(--danger); }
+
+/* ── Auth bar ────────────────────────────────────────────── */
+.auth-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+  min-height: 36px;
+}
+.auth-user {
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.auth-logout-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.auth-logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+.login-notice {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.login-btn-container { display: inline-block; }
+
+/* ── Shared form styles (Deeds, Materials, Safety, NodeProfile, ReWorks) ── */
+.deed-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.deed-form input,
+.deed-form textarea,
+.deed-form select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+}
+.deed-form input:focus,
+.deed-form textarea:focus,
+.deed-form select:focus { border-color: var(--accent); }
+.deed-form select option { background: #1a1a2e; }
+.form-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.form-row > * { flex: 1; min-width: 120px; }
+
+.action-btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 22px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.2s;
+}
+.action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.success { color: #06d6a0; font-size: 0.9rem; margin: 8px 0; }
+
+/* ── Item list (shared across Deeds, Materials, Safety) ──── */
+.item-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.item-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.item-meta { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.item-desc { font-size: 0.88rem; color: var(--muted); margin-top: 6px; }
+.item-type-badge {
+  background: rgba(0,255,255,0.1);
+  color: var(--accent2);
+  border: 1px solid var(--accent2);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.status-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.status-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.status-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Filter bar ──────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: capitalize;
+}
+.filter-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.filter-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+
+/* ── QR code block ───────────────────────────────────────── */
+.qr-block { margin-top: 16px; }
+.qr-img   { max-width: 160px; border: 2px solid var(--border); border-radius: 8px; display: block; }
+
+/* ── Node Profile ────────────────────────────────────────── */
+.node-stats { display: flex; gap: 20px; margin-bottom: 16px; flex-wrap: wrap; }
+.node-stat  { color: var(--muted); font-size: 0.9rem; }
+.node-stat strong { color: var(--accent); }
+
+/* ── Re-Works pollution table ───────────────────────────── */
+.pollution-table-wrap { overflow-x: auto; }
+.pollution-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.pollution-table th {
+  text-align: left;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  font-weight: 600;
+}
+.pollution-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0,255,255,0.06);
+  color: var(--text);
+}
+.pollution-table tr:last-child td { border-bottom: none; }
+
+/* ── Governance pillars ──────────────────────────────────── */
+.pillar-grid { display: flex; flex-direction: column; gap: 14px; }
+.pillar-row  { display: flex; flex-direction: column; gap: 4px; }
+.pillar-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+.pillar-num       { color: var(--muted); min-width: 22px; font-variant-numeric: tabular-nums; }
+.pillar-name      { flex: 1; color: var(--text); }
+.pillar-score-val { color: var(--accent); font-weight: 700; min-width: 28px; text-align: right; }
+.pillar-bar-wrap  { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+.pillar-bar       { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+.pillar-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Vajra SSE ack indicator ─────────────────────────────── */
+.ack-indicator {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: var(--accent2);
+  padding: 6px 12px;
+  border: 1px solid rgba(0,204,204,0.3);
+  border-radius: 4px;
+  margin-top: -16px;
+  margin-bottom: 16px;
+  background: rgba(0,204,204,0.05);
+}
